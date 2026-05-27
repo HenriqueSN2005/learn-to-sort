@@ -160,20 +160,25 @@ function Page() {
         {/* Data controls */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">1. Fonte de dados — Google Books</CardTitle>
+            <CardTitle className="text-base">1. Fonte de dados — Open Library</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-12 gap-3 items-end">
-              <div className="md:col-span-4">
-                <Label htmlFor="q">Termo de busca</Label>
-                <Input
-                  id="q"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="ex: javascript, machine learning..."
-                />
+              <div className="md:col-span-5">
+                <Label htmlFor="q">Termo de busca (em tempo real)</Label>
+                <div className="relative">
+                  <Input
+                    id="q"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="ex: javascript, harry potter, machine learning..."
+                  />
+                  {loading && (
+                    <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  )}
+                </div>
               </div>
-              <div className="md:col-span-3">
+              <div className="md:col-span-4">
                 <Label>Tamanho da amostra</Label>
                 <Select value={String(size)} onValueChange={(v) => setSize(Number(v))}>
                   <SelectTrigger>
@@ -202,11 +207,6 @@ function Page() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Button onClick={loadData} disabled={loading} className="w-full">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar dados"}
-                </Button>
               </div>
             </div>
             {error && <p className="text-sm text-destructive mt-3">{error}</p>}
