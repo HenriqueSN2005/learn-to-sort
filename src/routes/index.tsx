@@ -108,25 +108,30 @@ function Page() {
     if (!playing) startTimeRef.current = null;
   }, [playing]);
 
-  async function loadData() {
-    setLoading(true);
-    setError(null);
-    setBenchmark(null);
-    try {
-      const data = await fetchBooks(query || "books", size);
-      if (data.length === 0) setError("Nenhum livro encontrado com dados válidos.");
-      setBooks(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao buscar dados");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // Debounced real-time search: refetch whenever query or size changes.
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      setBenchmark(null);
+      try {
+        const data = await fetchBooks(query, size, controller.signal);
+        if (data.length === 0) setError("Nenhum livro encontrado com dados válidos.");
+        setBooks(data);
+      } catch (e) {
+        if ((e as { name?: string })?.name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "Erro ao buscar dados");
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [query, size]);
+
 
   const current: SortStep | null = steps[idx] ?? null;
   const maxValue = useMemo(() => Math.max(...values, 1), [values]);
@@ -146,7 +151,7 @@ function Page() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Anime, compare e entenda Bubble, Selection, Insertion, Merge, Quick e Heap Sort sobre
-            dados reais da API do Google Books.
+            dados reais da Open Library.
           </p>
         </div>
       </header>
@@ -155,20 +160,25 @@ function Page() {
         {/* Data controls */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">1. Fonte de dados — Google Books</CardTitle>
+            <CardTitle className="text-base">1. Fonte de dados — Open Library</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-12 gap-3 items-end">
-              <div className="md:col-span-4">
-                <Label htmlFor="q">Termo de busca</Label>
-                <Input
-                  id="q"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="ex: javascript, machine learning..."
-                />
+              <div className="md:col-span-5">
+                <Label htmlFor="q">Termo de busca (em tempo real)</Label>
+                <div className="relative">
+                  <Input
+                    id="q"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="ex: javascript, harry potter, machine learning..."
+                  />
+                  {loading && (
+                    <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  )}
+                </div>
               </div>
-              <div className="md:col-span-3">
+              <div className="md:col-span-4">
                 <Label>Tamanho da amostra</Label>
                 <Select value={String(size)} onValueChange={(v) => setSize(Number(v))}>
                   <SelectTrigger>
@@ -197,11 +207,6 @@ function Page() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="md:col-span-2">
-                <Button onClick={loadData} disabled={loading} className="w-full">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar dados"}
-                </Button>
               </div>
             </div>
             {error && <p className="text-sm text-destructive mt-3">{error}</p>}
