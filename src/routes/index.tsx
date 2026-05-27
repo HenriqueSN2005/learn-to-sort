@@ -151,7 +151,7 @@ function Page() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Anime, compare e entenda Bubble, Selection, Insertion, Merge, Quick e Heap Sort sobre
-            dados reais da API do Google Books.
+            dados reais da Open Library.
           </p>
         </div>
       </header>
