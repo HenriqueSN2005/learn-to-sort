@@ -108,25 +108,30 @@ function Page() {
     if (!playing) startTimeRef.current = null;
   }, [playing]);
 
-  async function loadData() {
-    setLoading(true);
-    setError(null);
-    setBenchmark(null);
-    try {
-      const data = await fetchBooks(query || "books", size);
-      if (data.length === 0) setError("Nenhum livro encontrado com dados válidos.");
-      setBooks(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao buscar dados");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // Debounced real-time search: refetch whenever query or size changes.
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      setBenchmark(null);
+      try {
+        const data = await fetchBooks(query, size, controller.signal);
+        if (data.length === 0) setError("Nenhum livro encontrado com dados válidos.");
+        setBooks(data);
+      } catch (e) {
+        if ((e as { name?: string })?.name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "Erro ao buscar dados");
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [query, size]);
+
 
   const current: SortStep | null = steps[idx] ?? null;
   const maxValue = useMemo(() => Math.max(...values, 1), [values]);
