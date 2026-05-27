@@ -6,45 +6,57 @@ export interface BookItem {
   rating: number;
 }
 
-interface GoogleVolume {
-  volumeInfo?: {
-    title?: string;
-    authors?: string[];
-    publishedDate?: string;
-    pageCount?: number;
-    averageRating?: number;
-  };
+interface OLDoc {
+  title?: string;
+  author_name?: string[];
+  first_publish_year?: number;
+  number_of_pages_median?: number;
+  ratings_average?: number;
 }
 
-export async function fetchBooks(query: string, max: number): Promise<BookItem[]> {
+interface OLResponse {
+  docs?: OLDoc[];
+}
+
+/**
+ * Busca livros na Open Library (sem necessidade de API key).
+ * Retorna apenas livros com ano de publicação e nº de páginas válidos.
+ */
+export async function fetchBooks(
+  query: string,
+  max: number,
+  signal?: AbortSignal,
+): Promise<BookItem[]> {
+  const q = query.trim() || "javascript";
+  // Pedimos mais que `max` porque vamos filtrar livros sem páginas/ano.
+  const limit = Math.min(Math.max(max * 3, 30), 200);
+  const fields = [
+    "title",
+    "author_name",
+    "first_publish_year",
+    "number_of_pages_median",
+    "ratings_average",
+  ].join(",");
+  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=${fields}&limit=${limit}`;
+
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`Falha ao buscar dados (HTTP ${res.status})`);
+  const data = (await res.json()) as OLResponse;
+  const docs = data.docs ?? [];
+
   const results: BookItem[] = [];
-  let startIndex = 0;
-  // Google Books returns max 40 per page
-  while (results.length < max && startIndex < 200) {
-    const pageSize = Math.min(40, max - results.length);
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${pageSize}&startIndex=${startIndex}&printType=books`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Falha ao buscar dados do Google Books");
-    const data = (await res.json()) as { items?: GoogleVolume[] };
-    const items = data.items ?? [];
-    if (items.length === 0) break;
-    for (const it of items) {
-      const v = it.volumeInfo ?? {};
-      const yearStr = (v.publishedDate ?? "").slice(0, 4);
-      const year = parseInt(yearStr, 10);
-      const pages = v.pageCount ?? 0;
-      const rating = v.averageRating ?? 0;
-      if (!v.title || isNaN(year) || pages <= 0) continue;
-      results.push({
-        title: v.title,
-        authors: (v.authors ?? ["Desconhecido"]).join(", "),
-        year,
-        pages,
-        rating,
-      });
-      if (results.length >= max) break;
-    }
-    startIndex += pageSize;
+  for (const d of docs) {
+    const year = d.first_publish_year ?? 0;
+    const pages = d.number_of_pages_median ?? 0;
+    if (!d.title || !year || pages <= 0) continue;
+    results.push({
+      title: d.title,
+      authors: (d.author_name ?? ["Desconhecido"]).join(", "),
+      year,
+      pages,
+      rating: Number((d.ratings_average ?? 0).toFixed(2)),
+    });
+    if (results.length >= max) break;
   }
   return results;
 }
