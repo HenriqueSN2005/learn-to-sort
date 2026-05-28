@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, SkipForward, RotateCcw } from "lucide-react";
+import { Play, Pause, SkipForward, RotateCcw, Trophy } from "lucide-react";
 import { ALGORITHMS } from "@/lib/sorting/algorithms";
 import type { AlgorithmKey, SortStep } from "@/lib/sorting/types";
-import { ComparisonTable, runBenchmark, type BenchmarkResult } from "./Comparison";
 
 interface Props {
   values: number[];
@@ -13,6 +12,16 @@ interface Props {
 }
 
 const KEYS = Object.keys(ALGORITHMS) as AlgorithmKey[];
+
+interface FinishEntry {
+  key: AlgorithmKey;
+  name: string;
+  timeMs: number;
+  steps: number;
+  comparisons: number;
+  swaps: number;
+  complexity: { best: string; average: string; worst: string };
+}
 
 export function RaceVisualizer({ values, maxValue }: Props) {
   const stepsByAlg = useMemo(() => {
@@ -43,12 +52,17 @@ export function RaceVisualizer({ values, maxValue }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef<number | null>(null);
 
+  const [finishOrder, setFinishOrder] = useState<FinishEntry[]>([]);
+  const finishedKeysRef = useRef<Set<AlgorithmKey>>(new Set());
+
   // Reset when data changes
   useEffect(() => {
     setIdx(0);
     setPlaying(false);
     setElapsed(0);
     startRef.current = null;
+    setFinishOrder([]);
+    finishedKeysRef.current = new Set();
   }, [stepsByAlg]);
 
   useEffect(() => {
@@ -68,11 +82,33 @@ export function RaceVisualizer({ values, maxValue }: Props) {
     return () => clearTimeout(t);
   }, [playing, idx, maxLen, speed, elapsed]);
 
-  const [benchmark, setBenchmark] = useState<BenchmarkResult[] | null>(null);
+  // Register algorithms as they finish, in race order.
   useEffect(() => {
-    if (values.length === 0) setBenchmark(null);
-    else setBenchmark(runBenchmark(values));
-  }, [values]);
+    if (maxLen === 0) return;
+    const newly: FinishEntry[] = [];
+    for (const key of KEYS) {
+      if (finishedKeysRef.current.has(key)) continue;
+      const steps = stepsByAlg[key] ?? [];
+      if (steps.length === 0) continue;
+      if (idx >= steps.length - 1) {
+        finishedKeysRef.current.add(key);
+        const last = steps[steps.length - 1];
+        const info = ALGORITHMS[key];
+        newly.push({
+          key,
+          name: info.name,
+          timeMs: elapsed,
+          steps: steps.length,
+          comparisons: last.comparisons,
+          swaps: last.swapsCount,
+          complexity: info.complexity,
+        });
+      }
+    }
+    if (newly.length > 0) {
+      setFinishOrder((prev) => [...prev, ...newly]);
+    }
+  }, [idx, elapsed, stepsByAlg, maxLen]);
 
   const allDone = maxLen > 0 && idx >= maxLen - 1;
 
@@ -84,9 +120,11 @@ export function RaceVisualizer({ values, maxValue }: Props) {
     );
   }
 
+  const medal = (i: number) =>
+    i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`;
+
   return (
     <div className="space-y-4">
-      {/* Controls — mirroring "Algoritmo e controles" */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Controles da corrida</CardTitle>
@@ -127,6 +165,8 @@ export function RaceVisualizer({ values, maxValue }: Props) {
                   setIdx(0);
                   setPlaying(false);
                   setElapsed(0);
+                  setFinishOrder([]);
+                  finishedKeysRef.current = new Set();
                 }}
               >
                 <RotateCcw className="w-4 h-4" />
@@ -137,7 +177,7 @@ export function RaceVisualizer({ values, maxValue }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Metric label="Passo global" value={`${idx + 1} / ${maxLen}`} />
             <Metric label="Tempo decorrido" value={`${(elapsed / 1000).toFixed(2)} s`} />
-            <Metric label="Elementos" value={String(values.length)} />
+            <Metric label="Concluídos" value={`${finishOrder.length} / ${KEYS.length}`} />
             <Metric
               label="Status"
               value={allDone ? "Concluído ✓" : playing ? "Executando" : "Pausado"}
@@ -155,6 +195,7 @@ export function RaceVisualizer({ values, maxValue }: Props) {
           const localIdx = Math.min(idx, steps.length - 1);
           const cur = steps[localIdx];
           const done = steps.length > 0 && idx >= steps.length - 1;
+          const rank = finishOrder.findIndex((f) => f.key === key);
           return (
             <div
               key={key}
@@ -163,9 +204,16 @@ export function RaceVisualizer({ values, maxValue }: Props) {
               }`}
             >
               <div className="flex items-baseline justify-between mb-2">
-                <div className="text-sm font-semibold">{algInfo.name}</div>
+                <div className="text-sm font-semibold flex items-center gap-1.5">
+                  {rank >= 0 && <span aria-hidden>{medal(rank)}</span>}
+                  {algInfo.name}
+                </div>
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {done ? "✓ Ordenado" : `${localIdx + 1}/${steps.length}`}
+                  {done
+                    ? rank >= 0
+                      ? `✓ ${(finishOrder[rank].timeMs / 1000).toFixed(2)}s`
+                      : "✓ Ordenado"
+                    : `${localIdx + 1}/${steps.length}`}
                 </div>
               </div>
               <MiniBars step={cur} maxValue={maxValue} />
@@ -195,19 +243,76 @@ export function RaceVisualizer({ values, maxValue }: Props) {
         ))}
       </div>
 
-      {/* Final benchmark table */}
-      {benchmark && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Tabela comparativa final ({values.length} elementos)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ComparisonTable results={benchmark} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Live finish ranking — built from the actual race */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            Ranking de chegada — {values.length} elementos da busca atual
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {finishOrder.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Inicie a corrida para registrar a ordem de chegada de cada algoritmo.
+            </p>
+          ) : (
+            <RankTable entries={finishOrder} pending={KEYS.length - finishOrder.length} />
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RankTable({ entries, pending }: { entries: FinishEntry[]; pending: number }) {
+  const first = entries[0]?.timeMs ?? 0;
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className="px-3 py-2 text-left font-medium">Posição</th>
+            <th className="px-3 py-2 text-left font-medium">Algoritmo</th>
+            <th className="px-3 py-2 text-right font-medium">Tempo na corrida</th>
+            <th className="px-3 py-2 text-right font-medium">Δ vs 1º</th>
+            <th className="px-3 py-2 text-right font-medium">Passos</th>
+            <th className="px-3 py-2 text-right font-medium">Comparações</th>
+            <th className="px-3 py-2 text-right font-medium">Trocas/Movs</th>
+            <th className="px-3 py-2 text-left font-medium">Complexidade média</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((e, i) => (
+            <tr key={e.key} className={i % 2 ? "bg-muted/20" : ""}>
+              <td className="px-3 py-2 font-semibold">
+                {i === 0 ? "🥇 1º" : i === 1 ? "🥈 2º" : i === 2 ? "🥉 3º" : `${i + 1}º`}
+              </td>
+              <td className="px-3 py-2 font-medium">{e.name}</td>
+              <td className="px-3 py-2 text-right font-mono">
+                {(e.timeMs / 1000).toFixed(2)} s
+              </td>
+              <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                {i === 0 ? "—" : `+${((e.timeMs - first) / 1000).toFixed(2)} s`}
+              </td>
+              <td className="px-3 py-2 text-right font-mono">{e.steps.toLocaleString("pt-BR")}</td>
+              <td className="px-3 py-2 text-right font-mono">
+                {e.comparisons.toLocaleString("pt-BR")}
+              </td>
+              <td className="px-3 py-2 text-right font-mono">{e.swaps.toLocaleString("pt-BR")}</td>
+              <td className="px-3 py-2 font-mono text-xs">{e.complexity.average}</td>
+            </tr>
+          ))}
+          {pending > 0 && (
+            <tr>
+              <td colSpan={8} className="px-3 py-2 text-xs text-muted-foreground italic">
+                Aguardando {pending} algoritmo{pending > 1 ? "s" : ""} finalizar
+                {pending > 1 ? "em" : ""}…
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
