@@ -23,6 +23,7 @@ import {
   runBenchmark,
   type BenchmarkResult,
 } from "@/components/sorting/Comparison";
+import { RaceVisualizer } from "@/components/sorting/RaceVisualizer";
 import { Play, Pause, SkipForward, RotateCcw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -357,20 +358,23 @@ function Page() {
           <TabsContent value="cmp" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Comparação entre todos os algoritmos</CardTitle>
+                <CardTitle className="text-base">
+                  Corrida animada — todos os algoritmos em paralelo
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Executa os 6 algoritmos sobre o mesmo conjunto de {values.length} elementos e
-                  mostra comparações, trocas e tempo de execução.
+                  Visualize Bubble, Selection, Insertion, Merge, Quick e Heap Sort sendo
+                  executados lado a lado sobre o mesmo conjunto de {values.length} elementos
+                  (campo: <span className="font-medium text-foreground">{FIELD_LABELS[field]}</span>).
+                  Use os controles abaixo para reproduzir, pausar, avançar passo a passo e
+                  ajustar a velocidade.
                 </p>
-                <Button onClick={runComparison} disabled={values.length === 0}>
-                  Rodar comparação
-                </Button>
-                {benchmark && <ComparisonTable results={benchmark} />}
               </CardContent>
             </Card>
+            <RaceVisualizer values={values} maxValue={maxValue} />
           </TabsContent>
+
 
           {/* DATA */}
           <TabsContent value="data">
