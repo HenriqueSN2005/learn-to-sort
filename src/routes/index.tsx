@@ -24,6 +24,7 @@ import {
   type BenchmarkResult,
 } from "@/components/sorting/Comparison";
 import { RaceVisualizer } from "@/components/sorting/RaceVisualizer";
+import { SearchVisualizer } from "@/components/sorting/SearchVisualizer";
 import { Play, Pause, SkipForward, RotateCcw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
