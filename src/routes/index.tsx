@@ -24,6 +24,7 @@ import {
   type BenchmarkResult,
 } from "@/components/sorting/Comparison";
 import { RaceVisualizer } from "@/components/sorting/RaceVisualizer";
+import { SearchVisualizer } from "@/components/sorting/SearchVisualizer";
 import { Play, Pause, SkipForward, RotateCcw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -224,6 +225,7 @@ function Page() {
           <TabsList>
             <TabsTrigger value="viz">Visualização passo a passo</TabsTrigger>
             <TabsTrigger value="cmp">Comparação de desempenho</TabsTrigger>
+            <TabsTrigger value="search">Busca (linear vs binária)</TabsTrigger>
             <TabsTrigger value="data">Dados carregados</TabsTrigger>
           </TabsList>
 
@@ -377,6 +379,10 @@ function Page() {
 
 
           {/* DATA */}
+          <TabsContent value="search">
+            <SearchVisualizer books={books} />
+          </TabsContent>
+
           <TabsContent value="data">
             <Card>
               <CardHeader>
