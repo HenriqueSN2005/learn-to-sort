@@ -379,6 +379,10 @@ function Page() {
 
 
           {/* DATA */}
+          <TabsContent value="search">
+            <SearchVisualizer books={books} />
+          </TabsContent>
+
           <TabsContent value="data">
             <Card>
               <CardHeader>
