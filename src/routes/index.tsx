@@ -225,6 +225,7 @@ function Page() {
           <TabsList>
             <TabsTrigger value="viz">Visualização passo a passo</TabsTrigger>
             <TabsTrigger value="cmp">Comparação de desempenho</TabsTrigger>
+            <TabsTrigger value="search">Busca (linear vs binária)</TabsTrigger>
             <TabsTrigger value="data">Dados carregados</TabsTrigger>
           </TabsList>
 
