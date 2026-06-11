@@ -25,6 +25,7 @@ import {
 } from "@/components/sorting/Comparison";
 import { RaceVisualizer } from "@/components/sorting/RaceVisualizer";
 import { SearchVisualizer } from "@/components/sorting/SearchVisualizer";
+import { SearchRaceVisualizer } from "@/components/sorting/SearchRaceVisualizer";
 import { Play, Pause, SkipForward, RotateCcw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -226,8 +227,13 @@ function Page() {
             <TabsTrigger value="viz">Visualização passo a passo</TabsTrigger>
             <TabsTrigger value="cmp">Comparação de desempenho</TabsTrigger>
             <TabsTrigger value="search">Busca (linear vs binária)</TabsTrigger>
+            <TabsTrigger value="race">Corrida Linear vs Binária</TabsTrigger>
             <TabsTrigger value="data">Dados carregados</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="race">
+            <SearchRaceVisualizer books={books} />
+          </TabsContent>
 
           {/* VISUALIZATION */}
           <TabsContent value="viz" className="space-y-4">
