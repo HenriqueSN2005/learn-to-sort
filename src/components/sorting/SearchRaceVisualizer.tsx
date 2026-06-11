@@ -203,10 +203,11 @@ export function SearchRaceVisualizer({ books }: Props) {
         </CardContent>
       </Card>
 
-      {/* Live counters */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Live counters + animation */}
+      <div className="grid lg:grid-cols-2 gap-4">
         <AlgoPanel
           name="Busca Linear"
+          algo="linear"
           color="rose"
           step={linearStep}
           totalSteps={linearSteps.length}
@@ -216,6 +217,7 @@ export function SearchRaceVisualizer({ books }: Props) {
         />
         <AlgoPanel
           name="Busca Binária"
+          algo="binary"
           color="emerald"
           step={binaryStep}
           totalSteps={binarySteps.length}
