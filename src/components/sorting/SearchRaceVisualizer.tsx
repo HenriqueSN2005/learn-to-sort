@@ -307,9 +307,10 @@ export function SearchRaceVisualizer({ books }: Props) {
 }
 
 function AlgoPanel({
-  name, color, step, totalSteps, idx, done, pseudocode,
+  name, algo, color, step, totalSteps, idx, done, pseudocode,
 }: {
   name: string;
+  algo: "linear" | "binary";
   color: "rose" | "emerald";
   step: SearchStep | null;
   totalSteps: number;
@@ -342,8 +343,10 @@ function AlgoPanel({
           </div>
           <div className="text-xs text-muted-foreground">comparações ao vivo</div>
         </div>
-        {step && (
+        {step ? (
           <>
+            <CellGrid step={step} algo={algo} />
+            <SearchLegend algo={algo} />
             <div className="text-xs font-medium border-t pt-2">{step.message}</div>
             <div className="flex flex-wrap gap-2 text-xs font-mono text-muted-foreground">
               {step.low !== undefined && <span>low={step.low}</span>}
@@ -354,8 +357,80 @@ function AlgoPanel({
             </div>
             <Pseudocode lines={pseudocode} active={step.line} />
           </>
+        ) : (
+          <div className="text-sm text-muted-foreground py-6 text-center">
+            Digite um alvo para iniciar.
+          </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function CellGrid({ step, algo }: { step: SearchStep; algo: "linear" | "binary" }) {
+  const n = step.values.length;
+  const isDiscarded = (i: number) => step.discarded.includes(i);
+  const isFound = (i: number) => step.found.includes(i);
+  const isMid = (i: number) => step.mid === i;
+  const isLow = (i: number) => step.low === i;
+  const isHigh = (i: number) => step.high === i;
+  const isCurrent = (i: number) => step.current === i;
+
+  return (
+    <div className="flex flex-wrap gap-1 max-h-[280px] overflow-auto p-1 rounded border bg-background/40">
+      {step.values.map((v, i) => {
+        let cls = "bg-muted/40 text-muted-foreground border-border";
+        if (isDiscarded(i)) cls = "bg-muted/20 text-muted-foreground/40 border-transparent line-through";
+        if (algo === "binary") {
+          if (isLow(i)) cls = "bg-sky-500/20 border-sky-500 text-foreground";
+          if (isHigh(i)) cls = "bg-sky-500/20 border-sky-500 text-foreground";
+          if (isMid(i)) cls = "bg-amber-400/30 border-amber-500 text-foreground font-medium";
+        } else if (isCurrent(i)) {
+          cls = "bg-sky-500/30 border-sky-500 text-foreground font-medium";
+        }
+        if (isFound(i)) cls = "bg-emerald-500/30 border-emerald-500 text-foreground font-semibold";
+
+        return (
+          <div
+            key={i}
+            className={`relative rounded border px-2 py-1 text-[11px] font-mono max-w-[160px] truncate transition-colors ${cls}`}
+            title={`[${i}] ${v}`}
+          >
+            <span className="opacity-50 mr-1">{i}</span>
+            {v.length > 14 ? v.slice(0, 13) + "…" : v}
+            {algo === "binary" && (isLow(i) || isHigh(i) || isMid(i)) && (
+              <span className="absolute -top-2 left-1 text-[9px] font-bold tracking-wide bg-background px-1 rounded">
+                {isMid(i) ? "mid" : isLow(i) ? "low" : "high"}
+              </span>
+            )}
+          </div>
+        );
+      })}
+      {n === 0 && <div className="text-sm text-muted-foreground">Sem dados.</div>}
+    </div>
+  );
+}
+
+function SearchLegend({ algo }: { algo: "linear" | "binary" }) {
+  const items = algo === "binary"
+    ? [
+        { c: "bg-sky-500/30 border-sky-500", l: "low / high" },
+        { c: "bg-amber-400/30 border-amber-500", l: "mid (comparando)" },
+        { c: "bg-muted/20 border-transparent", l: "descartado" },
+        { c: "bg-emerald-500/30 border-emerald-500", l: "encontrado" },
+      ]
+    : [
+        { c: "bg-sky-500/30 border-sky-500", l: "comparando" },
+        { c: "bg-emerald-500/30 border-emerald-500", l: "encontrado" },
+      ];
+  return (
+    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+      {items.map((it) => (
+        <div key={it.l} className="flex items-center gap-1">
+          <span className={`inline-block w-2.5 h-2.5 rounded border ${it.c}`} />
+          {it.l}
+        </div>
+      ))}
+    </div>
   );
 }
