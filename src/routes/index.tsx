@@ -223,16 +223,21 @@ function Page() {
         </Card>
 
         <Tabs defaultValue="viz" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="viz">Visualização passo a passo</TabsTrigger>
             <TabsTrigger value="cmp">Comparação de desempenho</TabsTrigger>
             <TabsTrigger value="search">Busca (linear vs binária)</TabsTrigger>
             <TabsTrigger value="race">Corrida Linear vs Binária</TabsTrigger>
+            <TabsTrigger value="persist">Persistência (Python)</TabsTrigger>
             <TabsTrigger value="data">Dados carregados</TabsTrigger>
           </TabsList>
 
           <TabsContent value="race">
             <SearchRaceVisualizer books={books} />
+          </TabsContent>
+
+          <TabsContent value="persist">
+            <PersistencePanel books={books} onLoadOffline={(b) => setBooks(b)} />
           </TabsContent>
 
           {/* VISUALIZATION */}
