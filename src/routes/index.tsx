@@ -238,7 +238,7 @@ function Page() {
           </TabsContent>
 
           <TabsContent value="persist">
-            <PersistencePanel books={books} onLoadOffline={(b) => setBooks(b)} />
+            <PersistencePanel books={books} onLoadOffline={(b: BookItem[]) => setBooks(b)} />
           </TabsContent>
 
           {/* VISUALIZATION */}
