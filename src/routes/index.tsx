@@ -26,6 +26,7 @@ import {
 import { RaceVisualizer } from "@/components/sorting/RaceVisualizer";
 import { SearchVisualizer } from "@/components/sorting/SearchVisualizer";
 import { SearchRaceVisualizer } from "@/components/sorting/SearchRaceVisualizer";
+import { PersistencePanel } from "@/components/persistence/PersistencePanel";
 import { Play, Pause, SkipForward, RotateCcw, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
